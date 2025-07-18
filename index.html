@@ -173,9 +173,7 @@
                                     <tr className="bg-gray-200">
                                         <th className="border p-2">Exercise</th>
                                         <th className="border p-2">Duration/Reps</th>
-                                        <th className="border p-2">Target Area</th>
                                         <th className="border p-2">Sets</th>
-                                        <th className="border p-2">Video</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -183,22 +181,19 @@
                                         <tr key={exercise.name} className="border">
                                             <td className="border p-2">{exercise.name}</td>
                                             <td className="border p-2">{exercise.duration}</td>
-                                            <td className="border p-2">{exercise.target}</td>
                                             <td className="border p-2 text-center">{exercise.sets}</td>
-                                            <td className="border p-2 text-center">
-                                                <a href={exercise.video} target="_blank" rel="noopener noreferrer" 
-                                                   className="text-blue-600 hover:underline">Watch</a>
-                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                             {workout.exercises.map((exercise, exerciseIndex) => (
-                                <button key={`${exercise.name}-add`} 
+                                <div key={`${exercise.name}-add`} className="mb-2">
+                                    <button 
                                         onClick={() => addSet(workoutIndex, exerciseIndex)} 
-                                        className="bg-blue-500 text-white px-4 py-2 rounded mb-2 mr-2 hover:bg-blue-600">
-                                    Add Set for {exercise.name}
-                                </button>
+                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                        Add Set for {exercise.name}
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     ))}
