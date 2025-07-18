@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Science-Based Mobility Tracker</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const mobilityWorkouts = [
+            {
+                name: "Mobility A",
+                exercises: [
+                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=77" },
+                    { name: "SQUAT", duration: "30-60 seconds", target: "Hips, Ankles", video: "https://youtu.be/bg5ltVL3fok?t=109" },
+                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads", video: "https://youtu.be/bg5ltVL3fok?t=128" },
+                    { name: "JEFFERSON CURL", duration: "30-60 seconds", target: "Spine, Hamstrings", video: "https://youtu.be/bg5ltVL3fok?t=158" },
+                    { name: "CRAB STRETCH", duration: "10 reps", target: "Shoulders, Chest", video: "https://youtu.be/bg5ltVL3fok?t=190" },
+                    { name: "ELEVATED PIGEON HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Glutes", video: "https://youtu.be/bg5ltVL3fok?t=222" }
+                ]
+            },
+            {
+                name: "Mobility B",
+                exercises: [
+                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=263" },
+                    { name: "STRAIGHT LEG HIP HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Hamstrings", video: "https://youtu.be/bg5ltVL3fok?t=273" },
+                    { name: "WALL BUTTERFLY", duration: "10 reps + hold last rep for 10 seconds", target: "Shoulders, Chest", video: "https://youtu.be/bg5ltVL3fok?t=310" },
+                    { name: "90/90 HIP IR ISOMETRICS", duration: "5-10 contractions", target: "Hips", video: "https://youtu.be/bg5ltVL3fok?t=355" },
+                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads", video: "https://youtu.be/bg5ltVL3fok?t=403" },
+                    { name: "BUTCHER BLOCK", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=411" }
+                ]
+            }
+        ];
+
+        function App() {
+            const [sets, setSets] = useState(() => {
+                const saved = localStorage.getItem('mobilityProgress');
+                return saved ? JSON.parse(saved) : mobilityWorkouts.map(workout => ({
+                    ...workout,
+                    exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                }));
+            });
+
+            useEffect(() => {
+                localStorage.setItem('mobilityProgress', JSON.stringify(sets));
+            }, [sets]);
+
+            const addSet = (workoutIndex, exerciseIndex) => {
+                const newSets = [...sets];
+                newSets[workoutIndex].exercises[exerciseIndex].sets += 1;
+                setSets(newSets);
+            };
+
+            const resetProgress = () => {
+                const resetSets = mobilityWorkouts.map(workout => ({
+                    ...workout,
+                    exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                }));
+                setSets(resetSets);
+            };
+
+            const exportAsText = () => {
+                const text = sets.map(workout => {
+                    return `${workout.name}\n${workout.exercises.map(ex => 
+                        `${ex.name}: ${ex.duration}, Target: ${ex.target}, Sets: ${ex.sets}`
+                    ).join('\n')}\n`;
+                }).join('\n');
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mobility_progress.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto p-4">
+                    <h1 className="text-3xl font-bold text-center mb-6">Science-Based Mobility Tracker</h1>
+                    <div className="flex justify-center space-x-4 mb-6">
+                        {mobilityWorkouts.map((workout, index) => (
+                            <a key={index} href={`#${workout.name.replace(/\s+/g, '-')}`} className="text-blue-600 hover:underline">
+                                {workout.name}
+                            </a>
+                        ))}
+                    </div>
+                    <div className="flex justify-center space-x-4 mb-6">
+                        <button onClick={() => localStorage.setItem('mobilityProgress', JSON.stringify(sets))} 
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Save Progress
+                        </button>
+                        <button onClick={() => {
+                            const saved = localStorage.getItem('mobilityProgress');
+                            if (saved) setSets(JSON.parse(saved));
+                        }} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            Load Progress
+                        </button>
+                        <button onClick={resetProgress} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Reset
+                        </button>
+                        <button onClick={exportAsText} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                            Export as Text
+                        </button>
+                    </div>
+                    {sets.map((workout, workoutIndex) => (
+                        <div key={workout.name} id={workout.name.replace(/\s+/g, '-')} className="mb-8">
+                            <h2 className="text-2xl font-semibold mb-4">{workout.name}</h2>
+                            <table className="w-full border-collapse mb-4">
+                                <thead>
+                                    <tr className="bg-gray-200">
+                                        <th className="border p-2">Exercise</th>
+                                        <th className="border p-2">Duration/Reps</th>
+                                        <th className="border p-2">Target Area</th>
+                                        <th className="border p-2">Sets</th>
+                                        <th className="border p-2">Video</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {workout.exercises.map((exercise, exerciseIndex) => (
+                                        <tr key={exercise.name} className="border">
+                                            <td className="border p-2">{exercise.name}</td>
+                                            <td className="border p-2">{exercise.duration}</td>
+                                            <td className="border p-2">{exercise.target}</td>
+                                            <td className="border p-2 text-center">{exercise.sets}</td>
+                                            <td className="border p-2 text-center">
+                                                <a href={exercise.video} target="_blank" rel="noopener noreferrer" 
+                                                   className="text-blue-600 hover:underline">Watch</a>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {workout.exercises.map((exercise, exerciseIndex) => (
+                                <button key={`${exercise.name}-add`} 
+                                        onClick={() => addSet(workoutIndex, exerciseIndex)} 
+                                        className="bg-blue-500 text-white px-4 py-2 rounded mb-2 mr-2 hover:bg-blue-600">
+                                    Add Set for {exercise.name}
+                                </button>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
