@@ -7,6 +7,18 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#000000">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Fallback for CDN failures
+        window.addEventListener('load', () => {
+            if (!window.React || !window.ReactDOM || !window.Babel) {
+                document.getElementById('root').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: red;">
+                        <h1>Error Loading App</h1>
+                        <p>Failed to load required scripts. Please check your internet connection and try again.</p>
+                    </div>`;
+            }
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
@@ -16,27 +28,47 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // Error Boundary Component
+        class ErrorBoundary extends React.Component {
+            state = { hasError: false };
+            static getDerivedStateFromError(error) {
+                console.error('ErrorBoundary caught:', error);
+                return { hasError: true };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="text-center p-4 text-red-600">
+                            <h1 className="text-2xl font-bold">Something went wrong</h1>
+                            <p>Please refresh the page or check the console for errors.</p>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         const mobilityWorkouts = [
             {
                 name: "Mobility A",
                 exercises: [
-                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=77" },
-                    { name: "SQUAT", duration: "30-60 seconds", target: "Hips, Ankles", video: "https://youtu.be/bg5ltVL3fok?t=109" },
-                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads", video: "https://youtu.be/bg5ltVL3fok?t=128" },
-                    { name: "JEFFERSON CURL", duration: "30-60 seconds", target: "Spine, Hamstrings", video: "https://youtu.be/bg5ltVL3fok?t=158" },
-                    { name: "CRAB STRETCH", duration: "10 reps", target: "Shoulders, Chest", video: "https://youtu.be/bg5ltVL3fok?t=190" },
-                    { name: "ELEVATED PIGEON HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Glutes", video: "https://youtu.be/bg5ltVL3fok?t=222" }
+                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine" },
+                    { name: "SQUAT", duration: "30-60 seconds", target: "Hips, Ankles" },
+                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads" },
+                    { name: "JEFFERSON CURL", duration: "30-60 seconds", target: "Spine, Hamstrings" },
+                    { name: "CRAB STRETCH", duration: "10 reps", target: "Shoulders, Chest" },
+                    { name: "ELEVATED PIGEON HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Glutes" }
                 ]
             },
             {
                 name: "Mobility B",
                 exercises: [
-                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=263" },
-                    { name: "STRAIGHT LEG HIP HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Hamstrings", video: "https://youtu.be/bg5ltVL3fok?t=273" },
-                    { name: "WALL BUTTERFLY", duration: "10 reps + hold last rep for 10 seconds", target: "Shoulders, Chest", video: "https://youtu.be/bg5ltVL3fok?t=310" },
-                    { name: "90/90 HIP IR ISOMETRICS", duration: "5-10 contractions", target: "Hips", video: "https://youtu.be/bg5ltVL3fok?t=355" },
-                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads", video: "https://youtu.be/bg5ltVL3fok?t=403" },
-                    { name: "BUTCHER BLOCK", duration: "30-60 seconds", target: "Shoulders, Spine", video: "https://youtu.be/bg5ltVL3fok?t=411" }
+                    { name: "HANG", duration: "30-60 seconds", target: "Shoulders, Spine" },
+                    { name: "STRAIGHT LEG HIP HINGE", duration: "10 reps + hold last rep for 10 seconds", target: "Hips, Hamstrings" },
+                    { name: "WALL BUTTERFLY", duration: "10 reps + hold last rep for 10 seconds", target: "Shoulders, Chest" },
+                    { name: "90/90 HIP IR ISOMETRICS", duration: "5-10 contractions", target: "Hips" },
+                    { name: "COUCH STRETCH", duration: "30-60 seconds per side", target: "Hips, Quads" },
+                    { name: "BUTCHER BLOCK", duration: "30-60 seconds", target: "Shoulders, Spine" }
                 ]
             }
         ];
@@ -46,15 +78,21 @@
                 try {
                     const saved = localStorage.getItem('mobilityProgress');
                     console.log('Loading progress from localStorage:', saved);
-                    return saved ? JSON.parse(saved) : mobilityWorkouts.map(workout => ({
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.every(w => w.name && Array.isArray(w.exercises))) {
+                            return parsed;
+                        }
+                    }
+                    return mobilityWorkouts.map(workout => ({
                         ...workout,
-                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0, reps: 0 }))
                     }));
                 } catch (error) {
                     console.error('Error accessing localStorage:', error);
                     return mobilityWorkouts.map(workout => ({
                         ...workout,
-                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0, reps: 0 }))
                     }));
                 }
             });
@@ -77,6 +115,16 @@
                 });
             };
 
+            const updateReps = (workoutIndex, exerciseIndex, delta) => {
+                console.log(`Updating reps for workout ${workoutIndex}, exercise ${exerciseIndex}, delta: ${delta}`);
+                setSets(prevSets => {
+                    const newSets = [...prevSets];
+                    const newReps = Math.max(0, newSets[workoutIndex].exercises[exerciseIndex].reps + delta);
+                    newSets[workoutIndex].exercises[exerciseIndex].reps = newReps;
+                    return newSets;
+                });
+            };
+
             const saveProgress = () => {
                 try {
                     console.log('Saving progress manually:', sets);
@@ -93,8 +141,13 @@
                     const saved = localStorage.getItem('mobilityProgress');
                     console.log('Loading progress:', saved);
                     if (saved) {
-                        setSets(JSON.parse(saved));
-                        alert('Progress loaded successfully!');
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.every(w => w.name && Array.isArray(w.exercises))) {
+                            setSets(parsed);
+                            alert('Progress loaded successfully!');
+                        } else {
+                            alert('Invalid saved progress data.');
+                        }
                     } else {
                         alert('No saved progress found.');
                     }
@@ -108,7 +161,7 @@
                 console.log('Resetting progress');
                 const resetSets = mobilityWorkouts.map(workout => ({
                     ...workout,
-                    exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                    exercises: workout.exercises.map(ex => ({ ...ex, sets: 0, reps: 0 }))
                 }));
                 setSets(resetSets);
                 alert('Progress reset successfully!');
@@ -119,7 +172,7 @@
                     console.log('Exporting progress as text');
                     const text = sets.map(workout => {
                         return `${workout.name}\n${workout.exercises.map(ex => 
-                            `${ex.name}: ${ex.duration}, Target: ${ex.target}, Sets: ${ex.sets}`
+                            `${ex.name}: ${ex.duration}, Sets: ${ex.sets}, Reps/Time: ${ex.reps}`
                         ).join('\n')}\n`;
                     }).join('\n');
                     const blob = new Blob([text], { type: 'text/plain' });
@@ -174,6 +227,8 @@
                                         <th className="border p-2">Exercise</th>
                                         <th className="border p-2">Duration/Reps</th>
                                         <th className="border p-2">Sets</th>
+                                        <th className="border p-2">Reps/Time</th>
+                                        <th className="border p-2">Add Set</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -182,26 +237,41 @@
                                             <td className="border p-2">{exercise.name}</td>
                                             <td className="border p-2">{exercise.duration}</td>
                                             <td className="border p-2 text-center">{exercise.sets}</td>
+                                            <td className="border p-2 text-center">
+                                                <div className="flex items-center justify-center space-x-2">
+                                                    <button 
+                                                        onClick={() => updateReps(workoutIndex, exerciseIndex, -1)}
+                                                        className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+                                                    >-</button>
+                                                    <span>{exercise.reps}</span>
+                                                    <button 
+                                                        onClick={() => updateReps(workoutIndex, exerciseIndex, 1)}
+                                                        className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+                                                    >+</button>
+                                                </div>
+                                            </td>
+                                            <td className="border p-2 text-center">
+                                                <button 
+                                                    onClick={() => addSet(workoutIndex, exerciseIndex)}
+                                                    className="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600"
+                                                >Add Set</button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                            {workout.exercises.map((exercise, exerciseIndex) => (
-                                <div key={`${exercise.name}-add`} className="mb-2">
-                                    <button 
-                                        onClick={() => addSet(workoutIndex, exerciseIndex)} 
-                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                        Add Set for {exercise.name}
-                                    </button>
-                                </div>
-                            ))}
                         </div>
                     ))}
                 </div>
             );
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        ReactDOM.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>,
+            document.getElementById('root')
+        );
     </script>
 </body>
 </html>
