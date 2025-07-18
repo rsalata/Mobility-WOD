@@ -43,44 +43,97 @@
 
         function App() {
             const [sets, setSets] = useState(() => {
-                const saved = localStorage.getItem('mobilityProgress');
-                return saved ? JSON.parse(saved) : mobilityWorkouts.map(workout => ({
-                    ...workout,
-                    exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
-                }));
+                try {
+                    const saved = localStorage.getItem('mobilityProgress');
+                    console.log('Loading progress from localStorage:', saved);
+                    return saved ? JSON.parse(saved) : mobilityWorkouts.map(workout => ({
+                        ...workout,
+                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                    }));
+                } catch (error) {
+                    console.error('Error accessing localStorage:', error);
+                    return mobilityWorkouts.map(workout => ({
+                        ...workout,
+                        exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
+                    }));
+                }
             });
 
             useEffect(() => {
-                localStorage.setItem('mobilityProgress', JSON.stringify(sets));
+                try {
+                    console.log('Saving progress to localStorage:', sets);
+                    localStorage.setItem('mobilityProgress', JSON.stringify(sets));
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                }
             }, [sets]);
 
             const addSet = (workoutIndex, exerciseIndex) => {
-                const newSets = [...sets];
-                newSets[workoutIndex].exercises[exerciseIndex].sets += 1;
-                setSets(newSets);
+                console.log(`Adding set for workout ${workoutIndex}, exercise ${exerciseIndex}`);
+                setSets(prevSets => {
+                    const newSets = [...prevSets];
+                    newSets[workoutIndex].exercises[exerciseIndex].sets += 1;
+                    return newSets;
+                });
+            };
+
+            const saveProgress = () => {
+                try {
+                    console.log('Saving progress manually:', sets);
+                    localStorage.setItem('mobilityProgress', JSON.stringify(sets));
+                    alert('Progress saved successfully!');
+                } catch (error) {
+                    console.error('Error saving progress:', error);
+                    alert('Failed to save progress. Check console for details.');
+                }
+            };
+
+            const loadProgress = () => {
+                try {
+                    const saved = localStorage.getItem('mobilityProgress');
+                    console.log('Loading progress:', saved);
+                    if (saved) {
+                        setSets(JSON.parse(saved));
+                        alert('Progress loaded successfully!');
+                    } else {
+                        alert('No saved progress found.');
+                    }
+                } catch (error) {
+                    console.error('Error loading progress:', error);
+                    alert('Failed to load progress. Check console for details.');
+                }
             };
 
             const resetProgress = () => {
+                console.log('Resetting progress');
                 const resetSets = mobilityWorkouts.map(workout => ({
                     ...workout,
                     exercises: workout.exercises.map(ex => ({ ...ex, sets: 0 }))
                 }));
                 setSets(resetSets);
+                alert('Progress reset successfully!');
             };
 
             const exportAsText = () => {
-                const text = sets.map(workout => {
-                    return `${workout.name}\n${workout.exercises.map(ex => 
-                        `${ex.name}: ${ex.duration}, Target: ${ex.target}, Sets: ${ex.sets}`
-                    ).join('\n')}\n`;
-                }).join('\n');
-                const blob = new Blob([text], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'mobility_progress.txt';
-                a.click();
-                URL.revokeObjectURL(url);
+                try {
+                    console.log('Exporting progress as text');
+                    const text = sets.map(workout => {
+                        return `${workout.name}\n${workout.exercises.map(ex => 
+                            `${ex.name}: ${ex.duration}, Target: ${ex.target}, Sets: ${ex.sets}`
+                        ).join('\n')}\n`;
+                    }).join('\n');
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'mobility_progress.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert('Progress exported successfully!');
+                } catch (error) {
+                    console.error('Error exporting progress:', error);
+                    alert('Failed to export progress. Check console for details.');
+                }
             };
 
             return (
@@ -88,26 +141,27 @@
                     <h1 className="text-3xl font-bold text-center mb-6">Science-Based Mobility Tracker</h1>
                     <div className="flex justify-center space-x-4 mb-6">
                         {mobilityWorkouts.map((workout, index) => (
-                            <a key={index} href={`#${workout.name.replace(/\s+/g, '-')}`} className="text-blue-600 hover:underline">
+                            <a key={index} href={`#${workout.name.replace(/\s+/g, '-')}`} 
+                               className="text-blue-600 hover:underline">
                                 {workout.name}
                             </a>
                         ))}
                     </div>
                     <div className="flex justify-center space-x-4 mb-6">
-                        <button onClick={() => localStorage.setItem('mobilityProgress', JSON.stringify(sets))} 
+                        <button onClick={saveProgress} 
                                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                             Save Progress
                         </button>
-                        <button onClick={() => {
-                            const saved = localStorage.getItem('mobilityProgress');
-                            if (saved) setSets(JSON.parse(saved));
-                        }} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        <button onClick={loadProgress} 
+                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                             Load Progress
                         </button>
-                        <button onClick={resetProgress} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        <button onClick={resetProgress} 
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                             Reset
                         </button>
-                        <button onClick={exportAsText} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        <button onClick={exportAsText} 
+                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                             Export as Text
                         </button>
                     </div>
